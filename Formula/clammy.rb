@@ -21,72 +21,60 @@ class Clammy < Formula
     doc.mkpath
     (prefix/"share/clammy").mkpath
     
-    # Install lib files with preserved permissions
-    Dir["lib/*"].each do |file|
-      if File.directory?(file)
-        FileUtils.cp_r file, libexec, preserve: true
-      else
-        if File.executable?(file)
-          FileUtils.install file, libexec, mode: 0755
-        else
-          FileUtils.install file, libexec, mode: 0644
-        end
-      end
-    end
-    # Manually install the main executable to ensure proper permissions
-    FileUtils.cp "scan.sh", "#{bin}/clammy"
-    FileUtils.chmod 0755, "#{bin}/clammy"
-    
-    # Install bin directory items with executable permissions
-    if Dir.exist?("bin")
-      Dir["bin/*"].each do |f|
-        if File.directory?(f)
-          FileUtils.cp_r f, bin, preserve: true
-        else
-          FileUtils.install f, bin, mode: 0755
-        end
-      end
-    end
-    
-    # Install configuration files with read permissions
-    if Dir.exist?("config")
-      Dir["config/*"].each do |f|
-        if File.directory?(f)
-          FileUtils.cp_r f, "#{prefix}/config/", preserve: true
-        else
-          FileUtils.install f, "#{prefix}/config/", mode: 0644
-        end
-      end
-    end
-    
-    # Install documentation with read permissions
-    if Dir.exist?("docs")
-      Dir["docs/*"].each do |f|
-        if File.directory?(f)
-          FileUtils.cp_r f, doc, preserve: true
-        else
-          FileUtils.install f, doc, mode: 0644
-        end
-      end
-    end
-    
-    # Create example configuration file
-    (prefix/"share/clammy/clammy.conf.example").write <<~EOS
-      # Clammy Configuration File
+    begin
+      # Fix permissions for all shell scripts after extraction
+      system "find", ".", "-type", "f", "-name", "*.sh", "-exec", "chmod", "755", "{}", "\\;"
       
-      # Security directories
-      SECURITY_DIR="${HOME}/Security"
-      LOG_DIR="${SECURITY_DIR}/logs"
-      QUARANTINE_DIR="${SECURITY_DIR}/quarantine"
-      LOGFILE="${LOG_DIR}/clammy.log"
+      # Install lib files with correct permissions using simple copy
+      cp_r "lib/.", libexec
       
-      # Scan settings
-      MAX_FILE_SIZE=500
-      MIN_FREE_SPACE=1024
-      QUARANTINE_ENABLED=true
-      GENERATE_HTML_REPORT=true
-      OPEN_REPORT_AUTOMATICALLY=false
-    EOS
+      # Fix permissions after copying - ensure all script files are executable
+      system "find", libexec, "-type", "f", "-name", "*.sh", "-exec", "chmod", "755", "{}", "\\;"
+      
+      # Manually install the main executable to ensure proper permissions
+      cp "scan.sh", "#{bin}/clammy"
+      chmod 0755, "#{bin}/clammy"
+      
+      # Install bin directory items with executable permissions
+      if Dir.exist?("bin")
+        cp_r "bin/.", bin
+        system "find", bin, "-type", "f", "-exec", "chmod", "755", "{}", "\\;"
+      end
+      
+      # Install configuration files with read permissions
+      if Dir.exist?("config")
+        cp_r "config/.", "#{prefix}/config/"
+        system "find", "#{prefix}/config", "-type", "f", "-exec", "chmod", "644", "{}", "\\;"
+      end
+      
+      # Install documentation with read permissions
+      if Dir.exist?("docs")
+        cp_r "docs/.", doc
+        system "find", doc, "-type", "f", "-exec", "chmod", "644", "{}", "\\;"
+      end
+      
+      # Create example configuration file
+      (prefix/"share/clammy/clammy.conf.example").write <<~EOS
+        # Security directories
+        SECURITY_DIR="${HOME}/Security"
+        LOG_DIR="${SECURITY_DIR}/logs"
+        QUARANTINE_DIR="${SECURITY_DIR}/quarantine"
+        LOGFILE="${LOG_DIR}/clammy.log"
+        
+        # Scan settings
+        MAX_FILE_SIZE=500
+        MIN_FREE_SPACE=1024
+        QUARANTINE_ENABLED=true
+        GENERATE_HTML_REPORT=true
+        OPEN_REPORT_AUTOMATICALLY=false
+      EOS
+      
+      # Set permissions for config example
+      chmod 0644, "#{prefix}/share/clammy/clammy.conf.example"
+      
+    rescue StandardError => e
+      odie "Error during installation: #{e.message}"
+    end
   end
   def post_install
     ohai "Setting up Clammy"
