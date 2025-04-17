@@ -14,63 +14,60 @@ class Clammy < Formula
     # Add requirement for fileutils
     require "fileutils"
     
-    # Make lib files readable before installing
-    Dir["lib/*"].each do |f|
-      File.chmod(0644, f) unless File.directory?(f)
-      File.chmod(0755, f) if File.executable?(f) && !File.directory?(f)
-    end
+    # Create directories first
+    libexec.mkpath
+    bin.mkpath
+    (prefix/"config").mkpath
+    doc.mkpath
+    (prefix/"share/clammy").mkpath
     
-    # Ensure lib directory exists with proper permissions
-    libexec.install Dir["lib/*"]
-    
-    # Explicitly fix utils.sh permissions using FileUtils
-    if File.exist?("#{libexec}/utils.sh")
-      FileUtils.chmod 0755, "#{libexec}/utils.sh"
-    end
-    
-    # Process all files in libexec and set permissions appropriately
-    Dir["#{libexec}/**/*"].each do |f|
-      if File.file?(f)
-        if f =~ /\.(sh|bash)$/ || File.executable?(f)
-          FileUtils.chmod 0755, f
+    # Install lib files with preserved permissions
+    Dir["lib/*"].each do |file|
+      if File.directory?(file)
+        FileUtils.cp_r file, libexec, preserve: true
+      else
+        if File.executable?(file)
+          FileUtils.install file, libexec, mode: 0755
         else
-          FileUtils.chmod 0644, f
+          FileUtils.install file, libexec, mode: 0644
+        end
+      end
+    end
+    # Manually install the main executable to ensure proper permissions
+    FileUtils.install "scan.sh", bin, mode: 0755, name: "clammy"
+    
+    # Install bin directory items with executable permissions
+    if Dir.exist?("bin")
+      Dir["bin/*"].each do |f|
+        if File.directory?(f)
+          FileUtils.cp_r f, bin, preserve: true
+        else
+          FileUtils.install f, bin, mode: 0755
         end
       end
     end
     
     # Install configuration files with read permissions
-    (prefix/"config").mkpath
-    Dir["config/*"].each do |f|
-      if File.file?(f)
-        FileUtils.install f, "#{prefix}/config/", mode: 0644
-      else
-        FileUtils.cp_r f, "#{prefix}/config/"
+    if Dir.exist?("config")
+      Dir["config/*"].each do |f|
+        if File.directory?(f)
+          FileUtils.cp_r f, "#{prefix}/config/", preserve: true
+        else
+          FileUtils.install f, "#{prefix}/config/", mode: 0644
+        end
       end
-    end
-    
-    # Install main script with executable permissions
-    bin.install "scan.sh" => "clammy"
-    FileUtils.chmod 0755, "#{bin}/clammy"
-    
-    # Install bin directory items with executable permissions
-    Dir["bin/*"].each do |f|
-      FileUtils.install f, bin, mode: 0755
     end
     
     # Install documentation with read permissions
-    doc.mkpath
-    Dir["docs/*"].each do |f|
-      if File.file?(f)
-        FileUtils.install f, doc, mode: 0644
-      else
-        FileUtils.cp_r f, doc
+    if Dir.exist?("docs")
+      Dir["docs/*"].each do |f|
+        if File.directory?(f)
+          FileUtils.cp_r f, doc, preserve: true
+        else
+          FileUtils.install f, doc, mode: 0644
+        end
       end
     end
-    
-    # Create default directories with appropriate permissions
-    (prefix/"share/clammy").mkpath
-    FileUtils.chmod 0755, "#{prefix}/share/clammy"
     
     # Create example configuration file
     (prefix/"share/clammy/clammy.conf.example").write <<~EOS
