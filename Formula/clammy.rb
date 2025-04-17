@@ -24,9 +24,33 @@ class Clammy < Formula
     (prefix/"config").mkpath
     (prefix/"share/clammy").mkpath
     
+    # Explicitly set directory permissions
+    ohai "Setting directory permissions"
+    begin
+      FileUtils.chmod 0755, libexec
+      FileUtils.chmod 0755, bin
+      FileUtils.chmod 0755, prefix/"config"
+      FileUtils.chmod 0755, prefix/"share/clammy"
+      ohai "✓ Directory permissions set successfully"
+    rescue => e
+      opoo "Error setting directory permissions: #{e.message}"
+    end
+    
+    # Verify libexec permissions before installation
+    if File.exist?(libexec) && (File.stat(libexec).mode & 0777) != 0755
+      ohai "Fixing libexec permissions before file installation"
+      system "chmod", "755", libexec.to_s
+    end
+    
     # Install lib files - Use Homebrew's preferred approach
     ohai "Installing library files"
     libexec.install Dir["lib/*"]
+    
+    # Verify libexec permissions after installation - safety check
+    if File.exist?(libexec) && (File.stat(libexec).mode & 0777) != 0755
+      ohai "Re-fixing libexec permissions after file installation"
+      system "chmod", "755", libexec.to_s
+    end
     
     # Install main executable
     ohai "Installing main executable"
