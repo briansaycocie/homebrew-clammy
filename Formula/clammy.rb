@@ -11,36 +11,27 @@ class Clammy < Formula
   depends_on "bash" # Require bash 4+
 
   def install
-    # Install libexec files with proper executable permissions
-    Dir["lib/*"].each do |file|
-      if File.file?(file)
-        if File.executable?(file) || file.end_with?(".sh")
-          libexec.install file => File.basename(file), :mode => 0755
-        else
-          libexec.install file => File.basename(file), :mode => 0644
-        end
-      else
-        # For directories, just install them normally
-        libexec.install file
-      end
-    end
-
-    # Install main executable with correct permissions
-    bin.install "scan.sh" => "clammy", :mode => 0755
+    # Create necessary directories
+    libexec.mkpath
+    bin.mkpath
+    (prefix/"config").mkpath
+    (prefix/"share/clammy").mkpath
     
-    # Install bin files with executable permissions if they exist
+    # Use system commands to copy with preserved permissions
+    system "cp", "-a", "lib/.", libexec.to_s
+    
+    # Install main script as clammy
+    system "cp", "-f", "scan.sh", "#{bin}/clammy"
+    system "chmod", "755", "#{bin}/clammy"
+    
+    # Install bin directory if it exists
     if Dir.exist?("bin")
-      Dir["bin/*"].each do |file|
-        bin.install file => File.basename(file), :mode => 0755
-      end
+      system "cp", "-a", "bin/.", bin.to_s
     end
     
     # Install config and docs
-    prefix.install "config" if Dir.exist?("config") 
+    system "cp", "-a", "config/.", "#{prefix}/config/" if Dir.exist?("config")
     doc.install Dir["docs/*"] if Dir.exist?("docs")
-    
-    # Create share directory
-    (prefix/"share/clammy").mkpath
       
     # Create example configuration file
     (prefix/"share/clammy/clammy.conf.example").write <<~EOS
