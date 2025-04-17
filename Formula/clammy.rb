@@ -11,75 +11,48 @@ class Clammy < Formula
   depends_on "bash" # Require bash 4+
 
   def install
-    # Add requirement for fileutils
-    require "fileutils"
+    # Use Homebrew's standard installation methods
+    libexec.install Dir["lib/*"]
+    bin.install "scan.sh" => "clammy"
+    bin.install Dir["bin/*"] if Dir.exist?("bin")
+    prefix.install "config" if Dir.exist?("config")
+    doc.install Dir["docs/*"] if Dir.exist?("docs")
     
-    # Create directories first
-    libexec.mkpath
-    bin.mkpath
-    (prefix/"config").mkpath
-    doc.mkpath
+    # Create share directory
     (prefix/"share/clammy").mkpath
-    
-    begin
-      # Fix permissions for all shell scripts after extraction
-      system "find", ".", "-type", "f", "-name", "*.sh", "-exec", "chmod", "755", "{}", "\\;"
       
-      # Install lib files with correct permissions using simple copy
-      cp_r "lib/.", libexec
+    # Create example configuration file
+    (prefix/"share/clammy/clammy.conf.example").write <<~EOS
+      # Security directories
+      SECURITY_DIR="${HOME}/Security"
+      LOG_DIR="${SECURITY_DIR}/logs"
+      QUARANTINE_DIR="${SECURITY_DIR}/quarantine"
+      LOGFILE="${LOG_DIR}/clammy.log"
       
-      # Fix permissions after copying - ensure all script files are executable
-      system "find", libexec, "-type", "f", "-name", "*.sh", "-exec", "chmod", "755", "{}", "\\;"
-      
-      # Manually install the main executable to ensure proper permissions
-      cp "scan.sh", "#{bin}/clammy"
-      chmod 0755, "#{bin}/clammy"
-      
-      # Install bin directory items with executable permissions
-      if Dir.exist?("bin")
-        cp_r "bin/.", bin
-        system "find", bin, "-type", "f", "-exec", "chmod", "755", "{}", "\\;"
-      end
-      
-      # Install configuration files with read permissions
-      if Dir.exist?("config")
-        cp_r "config/.", "#{prefix}/config/"
-        system "find", "#{prefix}/config", "-type", "f", "-exec", "chmod", "644", "{}", "\\;"
-      end
-      
-      # Install documentation with read permissions
-      if Dir.exist?("docs")
-        cp_r "docs/.", doc
-        system "find", doc, "-type", "f", "-exec", "chmod", "644", "{}", "\\;"
-      end
-      
-      # Create example configuration file
-      (prefix/"share/clammy/clammy.conf.example").write <<~EOS
-        # Security directories
-        SECURITY_DIR="${HOME}/Security"
-        LOG_DIR="${SECURITY_DIR}/logs"
-        QUARANTINE_DIR="${SECURITY_DIR}/quarantine"
-        LOGFILE="${LOG_DIR}/clammy.log"
-        
-        # Scan settings
-        MAX_FILE_SIZE=500
-        MIN_FREE_SPACE=1024
-        QUARANTINE_ENABLED=true
-        GENERATE_HTML_REPORT=true
-        OPEN_REPORT_AUTOMATICALLY=false
-      EOS
-      
-      # Set permissions for config example
-      chmod 0644, "#{prefix}/share/clammy/clammy.conf.example"
-      
-    rescue StandardError => e
-      odie "Error during installation: #{e.message}"
-    end
+      # Scan settings
+      MAX_FILE_SIZE=500
+      MIN_FREE_SPACE=1024
+      QUARANTINE_ENABLED=true
+      GENERATE_HTML_REPORT=true
+      OPEN_REPORT_AUTOMATICALLY=false
+    EOS
   end
   def post_install
     ohai "Setting up Clammy"
-    
     # Add requirement for fileutils for consistent file operations
+    require "fileutils"
+    
+    # Fix executable permissions on scripts in libexec
+    begin
+      Dir["#{libexec}/*.sh"].each do |script|
+        chmod 0755, script
+      end
+      
+      # Ensure main binary is executable
+      chmod 0755, "#{bin}/clammy"
+    rescue => e
+      opoo "Error setting script permissions: #{e.message}"
+    end
     require "fileutils"
     
     # Define all required user directories
