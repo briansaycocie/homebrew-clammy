@@ -11,19 +11,19 @@ Clammy is a command-line tool that helps you manage and automate common tasks. F
 ### Add the Tap
 
 ```bash
-⚡ brew tap briansaycocie/clammy
+brew tap briansaycocie/clammy
 ```
 
 ### Install Clammy
 
 ```bash
-⚡ brew install clammy
+brew install clammy
 ```
 
 Or you can install in one command:
 
 ```bash
-⚡ brew install briansaycocie/clammy/clammy
+brew install briansaycocie/clammy/clammy
 ```
 
 ## 🧪 Available Formulae
