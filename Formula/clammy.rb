@@ -2,7 +2,7 @@ class Clammy < Formula
   desc "Enhanced virus scanning and quarantine solution built on ClamAV"
   homepage "https://github.com/briansaycocie/clammy"
   url "https://github.com/briansaycocie/clammy/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "695d2f510aeb7618024b071334a344cc624da1b8165f385fda1a98501ceb0331"
+  sha256 "389835032b3518ad82a41c3e9c24bbce589b5bd28d57674144fddf9052f20666"
   license "MIT"
   head "https://github.com/briansaycocie/clammy.git", branch: "main"
 
