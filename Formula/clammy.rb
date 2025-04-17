@@ -34,7 +34,8 @@ class Clammy < Formula
       end
     end
     # Manually install the main executable to ensure proper permissions
-    FileUtils.install "scan.sh", bin, mode: 0755, name: "clammy"
+    FileUtils.cp "scan.sh", "#{bin}/clammy"
+    FileUtils.chmod 0755, "#{bin}/clammy"
     
     # Install bin directory items with executable permissions
     if Dir.exist?("bin")
