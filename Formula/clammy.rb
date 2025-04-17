@@ -95,7 +95,6 @@ class Clammy < Formula
     
     # Add requirement for fileutils for consistent file operations
     require "fileutils"
-    end
     
     # Define all required user directories
     security_dir = "#{ENV["HOME"]}/Security"
