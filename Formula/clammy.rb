@@ -11,11 +11,32 @@ class Clammy < Formula
   depends_on "bash" # Require bash 4+
 
   def install
-    # Use Homebrew's standard installation methods
-    libexec.install Dir["lib/*"]
-    bin.install "scan.sh" => "clammy"
-    bin.install Dir["bin/*"] if Dir.exist?("bin")
-    prefix.install "config" if Dir.exist?("config")
+    # Install libexec files with proper executable permissions
+    Dir["lib/*"].each do |file|
+      if File.file?(file)
+        if File.executable?(file) || file.end_with?(".sh")
+          libexec.install file => File.basename(file), :mode => 0755
+        else
+          libexec.install file => File.basename(file), :mode => 0644
+        end
+      else
+        # For directories, just install them normally
+        libexec.install file
+      end
+    end
+
+    # Install main executable with correct permissions
+    bin.install "scan.sh" => "clammy", :mode => 0755
+    
+    # Install bin files with executable permissions if they exist
+    if Dir.exist?("bin")
+      Dir["bin/*"].each do |file|
+        bin.install file => File.basename(file), :mode => 0755
+      end
+    end
+    
+    # Install config and docs
+    prefix.install "config" if Dir.exist?("config") 
     doc.install Dir["docs/*"] if Dir.exist?("docs")
     
     # Create share directory
@@ -41,18 +62,6 @@ class Clammy < Formula
     ohai "Setting up Clammy"
     # Add requirement for fileutils for consistent file operations
     require "fileutils"
-    
-    # Fix executable permissions on scripts in libexec
-    begin
-      Dir["#{libexec}/*.sh"].each do |script|
-        chmod 0755, script
-      end
-      
-      # Ensure main binary is executable
-      chmod 0755, "#{bin}/clammy"
-    rescue => e
-      opoo "Error setting script permissions: #{e.message}"
-    end
     require "fileutils"
     
     # Define all required user directories
