@@ -11,26 +11,40 @@ class Clammy < Formula
   depends_on "bash" # Require bash 4+
 
   def install
-    # Create necessary directories
+    # First fix all file permissions to avoid issues
+    ohai "Fixing file permissions before installation"
+    system "find", ".", "-type", "f", "-name", "*.sh", "-exec", "chmod", "0755", "{}", ";"
+    system "find", "lib", "-type", "f", "-exec", "chmod", "0755", "{}", ";"
+    system "find", "bin", "-type", "f", "-exec", "chmod", "0755", "{}", ";" if Dir.exist?("bin")
+    system "chmod", "0755", "scan.sh"
+    
+    # Create directories to ensure they exist
     libexec.mkpath
     bin.mkpath
     (prefix/"config").mkpath
     (prefix/"share/clammy").mkpath
     
-    # Use system commands to copy with preserved permissions
-    system "cp", "-a", "lib/.", libexec.to_s
+    # Install lib files - Use Homebrew's preferred approach
+    ohai "Installing library files"
+    libexec.install Dir["lib/*"]
     
-    # Install main script as clammy
-    system "cp", "-f", "scan.sh", "#{bin}/clammy"
-    system "chmod", "755", "#{bin}/clammy"
+    # Install main executable
+    ohai "Installing main executable"
+    bin.install "scan.sh" => "clammy"
     
-    # Install bin directory if it exists
+    # Install bin files
     if Dir.exist?("bin")
-      system "cp", "-a", "bin/.", bin.to_s
+      ohai "Installing bin directory"
+      bin.install Dir["bin/*"]
     end
     
     # Install config and docs
-    system "cp", "-a", "config/.", "#{prefix}/config/" if Dir.exist?("config")
+    if Dir.exist?("config")
+      ohai "Installing configuration files"
+      (prefix/"config").install Dir["config/*"]
+    end
+    
+    ohai "Installing documentation"
     doc.install Dir["docs/*"] if Dir.exist?("docs")
       
     # Create example configuration file
@@ -52,7 +66,6 @@ class Clammy < Formula
   def post_install
     ohai "Setting up Clammy"
     # Add requirement for fileutils for consistent file operations
-    require "fileutils"
     require "fileutils"
     
     # Define all required user directories
